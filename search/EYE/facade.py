@@ -82,11 +82,18 @@ def find(query):
         removeStopWords(stemmedTokenList)
 
         #add words from list to dictionary
-        entry = {}
+        entry = {} #entry is dictionary of url(as key) and count(as value)
         for token in stemmedTokenList:
             if wordDic.has_key(token):
                 entry = wordDic[word]
-    
+            
+            if entry.has_key(url):
+                count = wordDic[word][url] + 1
+                wordDic[word][url] = count
+            else:
+                wordDic[word] = {url,1}
+
+
     return "Good morning"+query
 
 
