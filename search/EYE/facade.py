@@ -1,4 +1,5 @@
 import mysql.connector
+import operator
 
 def addWordToToken(tokenList, word):
 
@@ -69,9 +70,9 @@ def find(query):
         #tokenize all details
         tokenList = []
         for word in main:
-            addWordToToken(tokenList, )
+            addWordToToken(tokenList, word)
         for word in additional:
-            addWordToToken(tokenList)
+            addWordToToken(tokenList, word)
         
         #stemmer
         stemmedTokenList = []
@@ -87,13 +88,55 @@ def find(query):
             if wordDic.has_key(token):
                 entry = wordDic[word]
             
-            if entry.has_key(url):
-                count = wordDic[word][url] + 1
-                wordDic[word][url] = count
+                if entry.has_key(url):
+                    count = wordDic[word][url] + 1
+                    wordDic[word][url] = count
+                else:
+                    wordDic[word].append({url,1})
             else:
                 wordDic[word] = {url,1}
 
+    #Now that the indexes have been created...perform search operation using indexes.
+    #tokenize input first
+    tokenList = []
+    
+    for word in query:
+        addWordToToken(tokenList, word)
+        
+    #stemmer
+    stemmedTokenList = []
+    for token in tokenList:
+        stemmedTokenList.append(stem(token))
 
-    return "Good morning"+query
+    #remove stop words
+    removeStopWords(stemmedTokenList)
+
+    queryLen = len(stemmedTokenList)
+    multiplier = [1]*queryLen #this is the score multiplier(useful for increasing priority of certain keywords in query)
+    scoreDic = {} #this is a dictionary of url(key) and score(value)
+
+    for i in range(queryLen):
+        word=stemmedTokenList[i]
+
+        if wordDic.has_key(word):
+            entry = wordDic[word]
+            
+            for url in entry:
+                if scoreDic.has_key(url):
+                    scoreDic[url] = scoreDic[url] + (entry[url] * multiplier[i])
+                else:
+                    scoreDic[url] = (entry[url] * multiplier[i])
+        else:
+            pass #do nothing right now. Maybe we will add some code here in future.
+
+    #now sort the scoreDic and return results sorted by non-decreasing score value
+    sortedScoreDic = sorted(scoreDic.items(), key=operator.itemgetter(1))
+    
+    resultStr = ""
+    
+    for entry in sortedScoreDic:
+       resultStr = resultStr + str(entry[0]) + "," + str(entry[1]) + ","
+
+    return resultStr
 
 
