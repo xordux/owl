@@ -1,12 +1,26 @@
 import mysql.connector
 import operator
 
-def addWordToToken(tokenList, word):
+import string, re
+from nltk import PorterStemmer
 
-    pass
+def tokenize(inputStr):
+    #remove non-alphanumeric characters
+    pattern = re.compile('[\W_]+')
+    reducedStr = inputStr
+    reducedStr = pattern.sub(' ', reducedStr)
+    print("-----tokenizer--------")
+    print(reducedStr.split())
+    print("----end tokenizer-----")
+    return reducedStr.split()
+
+def addWordToToken(tokenList, word):
+    if len(word) > 1:
+        tokenList.append(word)
 
 def stem(word):
-    pass
+    word = PorterStemmer().stem(word)
+    return word
 
 def removeStopWords(stemmedList):
     stop_words=(
@@ -54,8 +68,6 @@ def removeStopWords(stemmedList):
             'whole', 'whom', 'whose', 'why', 'will', 'with', 'within', 'without',
             'would', 'yet', 'you', 'your', 'yours', 'yourself', 'yourselves',
             )
-            
-    
 
 def find(query):
     
@@ -69,9 +81,12 @@ def find(query):
         
         #tokenize all details
         tokenList = []
-        for word in main:
+        tMain = tokenize(main)
+        tAdditional = tokenize(additional)
+
+        for word in tMain:
             addWordToToken(tokenList, word)
-        for word in additional:
+        for word in tAdditional:
             addWordToToken(tokenList, word)
         
         #stemmer
@@ -85,22 +100,22 @@ def find(query):
         #add words from list to dictionary
         entry = {} #entry is dictionary of url(as key) and count(as value)
         for token in stemmedTokenList:
-            if wordDic.has_key(token):
-                entry = wordDic[word]
+            if token in wordDic:
+                entry = wordDic[token]
             
-                if entry.has_key(url):
-                    count = wordDic[word][url] + 1
-                    wordDic[word][url] = count
+                if url in entry:
+                    count = wordDic[token][url] + 1
+                    wordDic[token][url] = count
                 else:
-                    wordDic[word].append({url,1})
+                    wordDic[token][url]=1
             else:
-                wordDic[word] = {url,1}
+                wordDic[token] = {url:1}
 
     #Now that the indexes have been created...perform search operation using indexes.
     #tokenize input first
     tokenList = []
-    
-    for word in query:
+    tQuery = tokenize(query)
+    for word in tQuery:
         addWordToToken(tokenList, word)
         
     #stemmer
@@ -111,32 +126,44 @@ def find(query):
     #remove stop words
     removeStopWords(stemmedTokenList)
 
+    #calculate score
+    
     queryLen = len(stemmedTokenList)
     multiplier = [1]*queryLen #this is the score multiplier(useful for increasing priority of certain keywords in query)
     scoreDic = {} #this is a dictionary of url(key) and score(value)
-
+    
+    #print(queryLen)
     for i in range(queryLen):
         word=stemmedTokenList[i]
+        #print(word)
 
-        if wordDic.has_key(word):
+        if word in wordDic:
             entry = wordDic[word]
             
             for url in entry:
-                if scoreDic.has_key(url):
+                if url in scoreDic:
                     scoreDic[url] = scoreDic[url] + (entry[url] * multiplier[i])
                 else:
                     scoreDic[url] = (entry[url] * multiplier[i])
         else:
             pass #do nothing right now. Maybe we will add some code here in future.
 
+    print("Stemmed token list")
+    print(stemmedTokenList)
+    print("--------word dic-------")
+    print(wordDic)
+    print("-----------scoreDic----------")
+    print(scoreDic)
+
     #now sort the scoreDic and return results sorted by non-decreasing score value
-    sortedScoreDic = sorted(scoreDic.items(), key=operator.itemgetter(1))
+    sortedScoreDic = sorted(scoreDic.items(), key=operator.itemgetter(1), reverse=True)
     
     resultStr = ""
     
     for entry in sortedScoreDic:
        resultStr = resultStr + str(entry[0]) + "," + str(entry[1]) + ","
 
+    print(resultStr+"Rohit")
     return resultStr
 
 
